@@ -1,19 +1,20 @@
 ﻿using NUnit.Framework;
+using NSubstitute; 
 
 namespace ECS.Test.ManualFakes
 {
     [TestFixture]
     public class EcsManualFakeTest
     {
-        private FakeHeater _fakeHeater;
-        private FakeTempSensor _fakeTempSensor;
+        private IHeater _fakeHeater;
+        private ITempSensor _fakeTempSensor;
         private ECS _uut;
 
         [SetUp]
         public void SetUp()
         {
-            _fakeHeater = new FakeHeater();
-            _fakeTempSensor = new FakeTempSensor();
+            _fakeHeater = Substitute.For<IHeater>();
+            _fakeTempSensor = Substitute.For<ITempSensor>();
             _uut = new ECS(_fakeTempSensor, _fakeHeater, 23);
         }
 
@@ -22,12 +23,13 @@ namespace ECS.Test.ManualFakes
         public void Regulate_TempIsLow_HeaterIsTurnedOn()
         {
             // Setup stub with desired response
-            _fakeTempSensor.Temp = 20;
+            _fakeTempSensor.GetTemp().Returns(20);
+
             // Act
             _uut.Regulate();
 
             // Assert on the mock - was the heater called correctly
-            Assert.That(_fakeHeater.TurnOnCalledTimes, Is.EqualTo(1));
+            _fakeHeater.Received(1).TurnOn();
         }
 
         #endregion
@@ -37,11 +39,12 @@ namespace ECS.Test.ManualFakes
         public void Regulate_TempIsAboveUpperThreshold_HeaterIsTurnedOff()
         {
             // Setup the stub with desired response
-            _fakeTempSensor.Temp = 27;
+            _fakeTempSensor.GetTemp().Returns(27);
+
             _uut.Regulate();
 
             // Assert on the mock - was the heater called correctly
-            Assert.That(_fakeHeater.TurnOffCalledTimes, Is.EqualTo(1));
+            _fakeHeater.Received(1).TurnOff();
         }
 
         #endregion
@@ -54,15 +57,13 @@ namespace ECS.Test.ManualFakes
         public void RunSelfTest_CombinationOfInput_CorrectOutput(
             bool tempResult, bool heaterResult,bool expectedResult)
         {
-            _fakeTempSensor.SelfTestResult = tempResult;
-            _fakeHeater.SelfTestResult = heaterResult;
+            _fakeTempSensor.RunSelfTest().Returns(tempResult);
+            _fakeHeater.RunSelfTest().Returns(heaterResult);
 
-            Assert.That(_uut.RunSelfTest(), Is.EqualTo(expectedResult));
+            bool actualResult = _uut.RunSelfTest(); 
+            Assert.That(actualResult,Is.EqualTo(expectedResult));
+
         }
-
-
-
-
 
         #endregion
 
